@@ -1,22 +1,38 @@
 defmodule BodhCloudWeb.EventController do
   use BodhCloudWeb, :controller
+  use Filterable.Phoenix.Controller
 
-  alias BodhCloud.Device
+  import Ecto.Query
+
+  alias BodhCloud.{Device, Repo}
   alias BodhCloud.Device.Event
 
   action_fallback BodhCloudWeb.FallbackController
 
+  filterable do
+    filter device_id(query, value, _conn) do
+      query |> where(device_id: ^value)
+    end
+
+    @options cast: :datetime, cast_errors: false
+    filter inserted_at(query, value, _conn) do
+      query |> where([q], q.inserted_at >= ^value)
+    end
+
+    limitable(limit: 1_000_000)
+    orderable([:device_id, :inserted_at])
+  end
+
   def index(conn, _params) do
-    events = Device.list_events()
-    render(conn, "index.json", events: events)
+    with {:ok, query, filter_values} <- apply_filters(Event, conn),
+         events <- Repo.all(query),
+         do: render(conn, "index.json", events: events, meta: filter_values)
   end
 
   def create(conn, %{"event" => event_params}) do
-    with {:ok, %Event{} = event} <- Device.create_event(event_params) do
+    with {:ok, %Event{} = _event} <- Device.create_event(event_params) do
       conn
-      |> put_status(:created)
-      |> put_resp_header("location", Routes.event_path(conn, :show, event))
-      |> render("show.json", event: event)
+      |> Plug.Conn.send_resp(:ok, "")
     end
   end
 
@@ -39,5 +55,9 @@ defmodule BodhCloudWeb.EventController do
     with {:ok, %Event{}} <- Device.delete_event(event) do
       send_resp(conn, :no_content, "")
     end
+  end
+
+  def healthcheck(conn, _) do
+    conn |> json(%{ok: true, server_time: DateTime.utc_now()}) |> halt()
   end
 end

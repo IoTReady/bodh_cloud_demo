@@ -48,7 +48,8 @@ defmodule BodhCloud.MixProject do
       {:telemetry_poller, "~> 0.5"},
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
-      {:plug_cowboy, "~> 2.0"}
+      {:plug_cowboy, "~> 2.0"},
+      {:filterable, "~> 0.7.4"}
     ]
   end
 
