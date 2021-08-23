@@ -1,4 +1,16 @@
-# BodhCloud
+# Bodh Cloud Demo With Fly.io
+
+## Flow
+
+**This is an insecure implementation - secured using X509 certificates or other means.**
+
+- Device opens connection to `wss://<app-name>.fly.io/socket/websocket`
+- Device connects to channel with `{"event": "phx_join", "topic": "device:<device_id>", "ref": 0, "payload": {}}`
+- Device sends data with `{"event": "new_msg", "topic": "device:<device_id>", "ref": null, "payload": {"metric": "value"}}`
+- `{"metric": "value"}` is stored in the events table alongwith `device_id`.
+
+
+## Run locally
 
 To start your Phoenix server:
 
@@ -12,6 +24,7 @@ Ready to run in production? Please [check our deployment guides](https://hexdocs
 
 ## Learn more
 
+  * Fly.io Tutorial: https://fly.io/docs/getting-started/elixir/
   * Official website: https://www.phoenixframework.org/
   * Guides: https://hexdocs.pm/phoenix/overview.html
   * Docs: https://hexdocs.pm/phoenix
