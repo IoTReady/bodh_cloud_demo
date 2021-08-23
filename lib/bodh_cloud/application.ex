@@ -7,6 +7,8 @@ defmodule BodhCloud.Application do
 
   @impl true
   def start(_type, _args) do
+    topologies = Application.get_env(:libcluster, :topologies) || []
+
     children = [
       # Start the Ecto repository
       BodhCloud.Repo,
@@ -15,9 +17,10 @@ defmodule BodhCloud.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: BodhCloud.PubSub},
       # Start the Endpoint (http/https)
-      BodhCloudWeb.Endpoint
+      BodhCloudWeb.Endpoint,
       # Start a worker by calling: BodhCloud.Worker.start_link(arg)
       # {BodhCloud.Worker, arg}
+      {Cluster.Supervisor, [topologies, [name: BodhCloud.ClusterSupervisor]]}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

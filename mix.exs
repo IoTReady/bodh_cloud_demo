@@ -49,7 +49,8 @@ defmodule BodhCloud.MixProject do
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:filterable, "~> 0.7.4"}
+      {:filterable, "~> 0.7.4"},
+      {:libcluster, "~> 3.3"}
     ]
   end
 
