@@ -1,41 +1,126 @@
-<section class="phx-hero">
-  <h1><%= gettext "Welcome to %{name}!", name: "Phoenix" %></h1>
-  <p>Peace of mind from prototype to production</p>
-</section>
+<p>Clustered IoT Gateway with 2 nodes (MAA & LAX) running on Fly.io</p>
 
 <section class="row">
-  <article class="column">
-    <h2>Resources</h2>
-    <ul>
-      <li>
-        <a href="https://hexdocs.pm/phoenix/overview.html">Guides &amp; Docs</a>
-      </li>
-      <li>
-        <a href="https://github.com/phoenixframework/phoenix">Source</a>
-      </li>
-      <li>
-        <a href="https://github.com/phoenixframework/phoenix/blob/v1.6/CHANGELOG.md">v1.6 Changelog</a>
-      </li>
-    </ul>
+  <article class="column send">
+    <h2>Send Data</h2>
+    <p>Clicking start will establish a websocket connection to the gateway. Once a connection is established, every few
+      seconds, we will send the time taken to calculate the first 10000 prime numbers and the number of CPU cores.</p>
+    <button id="start" onclick="start()">Start</button>
+    <button id="stop" onclick="stop()" style="display: none">Stop</button>
   </article>
-  <article class="column">
-    <h2>Help</h2>
-    <ul>
-      <li>
-        <a href="https://elixirforum.com/c/phoenix-forum">Forum</a>
-      </li>
-      <li>
-        <a href="https://web.libera.chat/#elixir">#elixir on Libera Chat (IRC)</a>
-      </li>
-      <li>
-        <a href="https://twitter.com/elixirphoenix">Twitter @elixirphoenix</a>
-      </li>
-      <li>
-        <a href="https://elixir-slackin.herokuapp.com/">Elixir on Slack</a>
-      </li>
-      <li>
-        <a href="https://discord.gg/elixir">Elixir on Discord</a>
-      </li>
-    </ul>
+  <article class="column receive">
+    <h2>Receive Data</h2>
+    <table>
+      <tr>
+        <th>
+          Device ID
+        </th>
+        <th>
+          Calculation Time
+        </th>
+        <th>
+          Num CPUs
+        </th>
+      </tr>
+      <tbody>
+        <%= for row <- @data do %>
+        <tr>
+          <td>
+            <%= row["device_id"] %>
+          </td>
+          <td>
+            <%= row["time_for_prime"] %>
+          </td>
+          <td>
+            <%= row["cpu_count"] %>
+          </td>
+        </tr>
+        <% end %>
+      </tbody>
+    </table>
   </article>
 </section>
+
+<script>
+  function makeId(length) {
+    // https://stackoverflow.com/a/1349426
+    var result = '';
+    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var charactersLength = characters.length;
+    for (var i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+  }
+
+  let deviceId = localStorage.getItem("deviceId");
+  if (!deviceId) {
+    deviceId = makeId(10);
+    localStorage.setItem('deviceId', deviceId);
+  }
+
+  function primeNumbers(n) {
+    array = [];
+    for (let i = 2; array.length < n; i++) {
+      let divisorFound = false;
+      for (let count = 2; count < i; count++) {
+        if (i % count === 0) {
+          divisorFound = true;
+          break;
+        }
+      }
+      if (divisorFound == false) {
+        array.push(i);
+      }
+    }
+    return array;
+  }
+
+  function measure() {
+    const start = performance.now();
+    primeNumbers(10000);
+    const end = performance.now();
+
+    return {
+      time_for_prime: Math.round(end - start),
+      cpu_count: navigator.hardwareConcurrency,
+    }
+  }
+  const server = 'wss://late-smoke-5305.fly.dev/socket/websocket';
+  let socket = null;
+
+  function start() {
+    socket = new WebSocket(server);
+    console.log('WebSocket status ' + socket.readyState);
+    socket.onopen = function (msg) {
+      console.log("Welcome - status " + JSON.stringify(msg));
+      const join = {
+        "event": "phx_join",
+        "topic": `device:${deviceId}`,
+        "ref": 0,
+        "payload": {}
+      };
+      socket.send(JSON.stringify(join));
+    }
+    socket.onmessage = function (msg) {
+      console.log("Message Received: " + JSON.stringify(msg));
+      const metric = {
+        "event": "new_msg",
+        "topic": `device:${deviceId}`,
+        "ref": null,
+        "payload": measure()
+      };
+      socket.send(JSON.stringify(metric));
+    }
+    socket.onclose = function (msg) {
+      console.log("Disconnected - status " + JSON.stringify(msg));
+    }
+    document.getElementById("start").style.display = "none";
+    document.getElementById("stop").style.display = "block";
+  }
+  function stop() {
+    socket.close();
+    document.getElementById("start").style.display = "block";
+    document.getElementById("stop").style.display = "none";
+  }
+</script>

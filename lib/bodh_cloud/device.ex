@@ -18,7 +18,11 @@ defmodule BodhCloud.Device do
 
   """
   def list_events do
-    Repo.all(Event)
+    q =
+      from e in Event,
+        limit: 20
+
+    Repo.all(q)
   end
 
   @doc """
