@@ -20,6 +20,7 @@ defmodule BodhCloud.Device do
   def list_events do
     q =
       from e in Event,
+        order_by: [desc: e.inserted_at],
         limit: 20
 
     Repo.all(q)
